@@ -580,7 +580,7 @@ function generateChunk() {
 
   const w = Math.max(1.5, 5 - difficulty * 0.4);
   const d = Math.max(1.5, 4 - difficulty * 0.25);
-  const isMoving = difficulty > 2 && Math.random() > 0.6;
+  const isMoving = difficulty > 0.3 ? Math.random() > 0.55 : Math.random() > 0.8;
   const type = Math.random() > 0.88 ? 'danger' : Math.random() > 0.82 ? 'boost' : 'normal';
 
   createPlatform(nx, ny, nz, w, 0.5, d, type, isMoving);
@@ -872,16 +872,39 @@ function loop() {
     update(dt);
   }
 
-  // Moving platforms
+  // Moving platforms — track delta to carry player along
   const time = clock.elapsedTime;
   for (const p of platforms) {
     if (p.moving) {
+      const prevX = p.mesh.position.x;
+      const prevZ = p.mesh.position.z;
       if (p.moveAxis === 'x') {
         p.mesh.position.x = p.originX + Math.sin(time * p.moveSpeed + p.moveOffset) * p.moveRange;
         p.x = p.mesh.position.x;
+        p.deltaX = p.mesh.position.x - prevX;
+        p.deltaZ = 0;
       } else {
         p.mesh.position.z = p.originZ + Math.sin(time * p.moveSpeed + p.moveOffset) * p.moveRange;
         p.z = p.mesh.position.z;
+        p.deltaX = 0;
+        p.deltaZ = p.mesh.position.z - prevZ;
+      }
+    }
+  }
+
+  // Carry player with the platform they're standing on
+  if (state.playing && state.onGround) {
+    const playerBot = state.pos.y - 1.1 / 2;
+    for (const p of platforms) {
+      if (!p.moving) continue;
+      const px = p.mesh.position.x, py = p.mesh.position.y, pz = p.mesh.position.z;
+      const topY = py + p.h / 2;
+      if (Math.abs(state.pos.x - px) < p.w / 2 + 0.35 &&
+          Math.abs(state.pos.z - pz) < p.d / 2 + 0.35 &&
+          Math.abs(playerBot - topY) < 0.25) {
+        state.pos.x += p.deltaX || 0;
+        state.pos.z += p.deltaZ || 0;
+        break;
       }
     }
   }
