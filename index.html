@@ -398,7 +398,7 @@ renderer.toneMappingExposure = 1.2;
 const scene = new THREE.Scene();
 scene.fog = null;
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 300);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
 
 function resize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -672,10 +672,12 @@ function createSkybox() {
   });
   const sky = new THREE.Mesh(skyGeo, skyMat);
   scene.add(sky);
-  return skyMat;
+  return { mat: skyMat, mesh: sky };
 }
 
-const skyMat = createSkybox();
+const skybox = createSkybox();
+const skyMat = skybox.mat;
+const skyMesh = skybox.mesh;
 
 // Grid floor for atmosphere
 const gridHelper = new THREE.GridHelper(500, 100, 0x001133, 0x001133);
@@ -862,6 +864,9 @@ function loop() {
   animFrame = requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), 0.05);
   skyMat.uniforms.time.value += dt;
+  skyMesh.position.copy(camera.position);
+  gridHelper.position.x = camera.position.x;
+  gridHelper.position.z = camera.position.z;
 
   if (state.playing) {
     update(dt);
